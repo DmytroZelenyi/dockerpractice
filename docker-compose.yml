@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: .
+    container_name: gender-api
+    ports:
+      - "3000:3000"
+  backend-two:
+    build: .
+    container_name: email-api
+    ports:
+      - "4000:4000"
+    

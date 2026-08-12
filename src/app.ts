@@ -40,6 +40,22 @@ app.post('/validate-email', (req: Request, res: Response) => {
     return res.json({checkEmail});
 });
 
+app.post('/check-age', (req: Request, res: Response) => {
+
+    const { birthDate } = req.body;
+
+    if(!birthDate){
+        return res.status(400).send('Date is required');
+    }
+    const isAdult = new Date().getFullYear() - new Date(birthDate).getFullYear() >= 18;
+        
+    console.log(birthDate);
+    console.log(isAdult);
+
+    return res.json({isAdult});
+})
+
+
 
 
 app.listen(PORT, () => {

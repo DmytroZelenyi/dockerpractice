@@ -24,6 +24,16 @@ app.post('/validate-email', (req, res) => {
     const checkEmail = email.includes('@gmail.com') || email.includes('@yahoo.com') || email.includes('@outlook.com');
     return res.json({ checkEmail });
 });
+app.post('/check-age', (req, res) => {
+    const birthDate = req.body;
+    if (!birthDate) {
+        return res.status(400).send('Date is required');
+    }
+    const isAdult = new Date().getFullYear() - new Date(birthDate).getFullYear() >= 18;
+    console.log(birthDate);
+    console.log(isAdult);
+    return res.json({ isAdult });
+});
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}`);
 });

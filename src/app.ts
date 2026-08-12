@@ -55,6 +55,38 @@ app.post('/check-age', (req: Request, res: Response) => {
     return res.json({isAdult});
 })
 
+app.post('/check-password', (req: Request, res: Response) => {
+    const { password } = req.body;
+
+    if(!password || typeof password !== 'string'){
+        return res.status(400).send('Password is required');
+    }
+
+    const reason = [];
+
+    if(password.length < 8){
+        reason.push('Password must be at least 8 characters long');
+    }
+    if(!/[A-Z]/.test(password)){
+        reason.push('Password must contain at least one uppercase letter');
+    }
+    if(!/[0-9]/.test(password)){
+        reason.push('Password must contain at least one number');
+    }
+
+    let strength = "";
+    if(reason.length >= 2){
+        strength = "weak";
+    }else if(reason.length === 1){
+        strength = "medium";
+    }else if(reason.length === 0){
+        strength = "strong";
+    }
+
+    return res.json({reason, strength});
+   
+
+})
 
 
 

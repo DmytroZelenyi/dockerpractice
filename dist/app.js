@@ -25,7 +25,7 @@ app.post('/validate-email', (req, res) => {
     return res.json({ checkEmail });
 });
 app.post('/check-age', (req, res) => {
-    const birthDate = req.body;
+    const { birthDate } = req.body;
     if (!birthDate) {
         return res.status(400).send('Date is required');
     }
@@ -33,6 +33,33 @@ app.post('/check-age', (req, res) => {
     console.log(birthDate);
     console.log(isAdult);
     return res.json({ isAdult });
+});
+app.post('/check-password', (req, res) => {
+    const { password } = req.body;
+    if (!password || typeof password !== 'string') {
+        return res.status(400).send('Password is required');
+    }
+    const reason = [];
+    if (password.length < 8) {
+        reason.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+        reason.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+        reason.push('Password must contain at least one number');
+    }
+    let strength = "";
+    if (reason.length >= 2) {
+        strength = "weak";
+    }
+    else if (reason.length === 1) {
+        strength = "medium";
+    }
+    else if (reason.length === 0) {
+        strength = "strong";
+    }
+    return res.json({ reason, strength });
 });
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}`);

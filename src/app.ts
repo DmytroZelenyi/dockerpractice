@@ -1,16 +1,23 @@
 import express, { type Request,  type Response } from 'express';
 import cors from 'cors';
-
+import 'dotenv/config';
+import { Pool } from 'pg';
 import names from '../ukrainian_names_100.json' with { type: "json" };
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+
+
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URI
+});
 const namesDictinary: Record<string, string> = names;
 
 app.get('/check-gender', (req: Request, res: Response) =>{
@@ -90,6 +97,33 @@ app.post('/check-password', (req: Request, res: Response) => {
    
 
 })
+
+app.post('/users', async (req: Request, res: Response) => {
+
+    const { name, email, gender } = req.body;
+    const user = { name, email, gender };
+
+    if(!name || !email){
+        return res.status(400).send('Name, email are required');
+    }
+
+    const queryText = `
+        INSERT INTO users (name, email, gender)
+        VALUES ($1, $2, $3)
+        RETURNING *;
+    `
+    const values = [name, email, gender];
+
+    try {
+        const result = await pool.query(queryText, values);
+        return res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send('Error creating user');
+    }
+})
+
+
 
 
 

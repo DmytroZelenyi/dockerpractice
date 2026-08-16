@@ -89,6 +89,8 @@ app.post('/users', async (req, res) => {
         return res.status(500).send('Error creating user');
     }
 });
+app.get('/users', async (req, res) => {
+});
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}`);
 });

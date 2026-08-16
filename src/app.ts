@@ -123,7 +123,9 @@ app.post('/users', async (req: Request, res: Response) => {
     }
 })
 
-
+app.get('/users', async (req: Request, res: Response) => {
+    
+})
 
 
 

@@ -1,6 +1,7 @@
 import express, { type Request,  type Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import rateLimit from 'express-rate-limit';
 import { Pool } from 'pg';
 import names from '../ukrainian_names_100.json' with { type: "json" };
 
@@ -8,17 +9,21 @@ import names from '../ukrainian_names_100.json' with { type: "json" };
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
-
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const passwordLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 1 minute',
+})
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URI
 });
 const namesDictinary: Record<string, string> = names;
+const cache: Record<string, unknown> = {};
 
 app.get('/check-gender', (req: Request, res: Response) =>{
     const name = req.query.name as string;
@@ -65,7 +70,7 @@ app.post('/check-age', (req: Request, res: Response) => {
     return res.json({isAdult});
 })
 
-app.post('/check-password', (req: Request, res: Response) => {
+app.post('/check-password', passwordLimiter, (req: Request, res: Response) => {
     const { password } = req.body;
 
     if(!password || typeof password !== 'string'){
@@ -141,8 +146,6 @@ app.get('/users', async (req: Request, res: Response) => {
 
     if (minAge !== undefined) {
         const parsedMinAge = Number(minAge);
-
-
         conditions.push(`EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_date)) >= $${values.length + 1}`);
         values.push(parsedMinAge);
     }
@@ -204,6 +207,29 @@ app.get('/users/stats', async (req: Request, res: Response) => {
         return res.status(500).send('Error getting users2');
    }
 })
+
+app.get('/health', (req: Request, res: Response) => {
+    return res.status(200).send('OK');
+})
+
+app.get('/enrich-name', async (req: Request, res: Response) => {
+    const name = req.query.name as string;
+
+    if (cache[name]) {
+        return res.json(cache[name]);
+    }
+
+    const data = await fetch(`https://api.genderize.io?name[]=${name}`).then(response => response.json());
+    cache[name] = data;
+
+    return res.json(data);
+})
+
+
+
+
+
+
 
 
 app.listen(PORT, () => {

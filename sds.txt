@@ -1,0 +1,30 @@
+docker compose exec db psql -U postgres -d appdb -c "\dt"
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:3000/users" `
+  -ContentType "application/json" `
+  -Body '{"name":"Alice","email":"alice@gmail.com","gender":"female","birth_date":"2000-01-01"}'
+
+docker compose build
+docker compose up -d
+docker ps
+
+
+
+curl http://localhost:3000/health
+
+curl "http://localhost:3000/check-gender?name=Ivan"
+
+curl -X POST http://localhost:3000/validate-email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@gmail.com"}'
+
+curl -X POST http://localhost:3000/check-age \
+  -H "Content-Type: application/json" \
+  -d '{"birthDate":"2000-01-15"}'
+
+curl -X POST http://localhost:3000/check-password \
+  -H "Content-Type: application/json" \
+  -d '{"password":"TestPass123"}'
+
+curl "http://localhost:3000/enrich-name?name=Ivan"

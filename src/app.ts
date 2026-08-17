@@ -142,9 +142,6 @@ app.get('/users', async (req: Request, res: Response) => {
     if (minAge !== undefined) {
         const parsedMinAge = Number(minAge);
 
-        if (!Number.isFinite(parsedMinAge) || parsedMinAge < 0) {
-            return res.status(400).json({ error: 'minAge must be a non-negative number' });
-        }
 
         conditions.push(`EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_date)) >= $${values.length + 1}`);
         values.push(parsedMinAge);

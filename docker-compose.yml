@@ -1,16 +1,35 @@
 services:
-  backend:
-    build: .
-    container_name: gender-api
+  db:
+    image: postgres:16-alpine
+    container_name: users
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URI: postgres://postgres:postgres@db:5432/appdb
     ports:
       - "3000:3000"
-  backend-two:
-    build: .
-    container_name: email-api
-    ports:
-      - "4000:4000"
-  backend-three:
-    build: .
-    container_name: age-api
-    ports:
-      - "4001:4001"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

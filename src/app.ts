@@ -100,19 +100,19 @@ app.post('/check-password', (req: Request, res: Response) => {
 
 app.post('/users', async (req: Request, res: Response) => {
 
-    const { name, email, gender } = req.body;
-    const user = { name, email, gender };
+    const { name, email, gender, birth_date } = req.body;
+    const user = { name, email, gender, birth_date };
 
     if(!name || !email){
         return res.status(400).send('Name, email are required');
     }
 
     const queryText = `
-        INSERT INTO users (name, email, gender)
-        VALUES ($1, $2, $3)
+        INSERT INTO users (name, email, gender, birth_date)
+        VALUES ($1, $2, $3, $4)
         RETURNING *;
     `
-    const values = [name, email, gender];
+    const values = [name, email, gender, birth_date];
 
     try {
         const result = await pool.query(queryText, values);
@@ -124,9 +124,89 @@ app.post('/users', async (req: Request, res: Response) => {
 })
 
 app.get('/users', async (req: Request, res: Response) => {
+   
+    const { gender, minAge } = req.query as {
+        gender?: string;
+        minAge?: string;
+    };
+
+    const conditions: string[] = [];
+    const values: Array<string | number> = [];
+
+
+    if (gender && typeof gender === 'string' && gender.trim()) {
+        conditions.push(`LOWER(gender) = LOWER($${values.length + 1})`);
+        values.push(gender.trim());
+    }
+
+    if (minAge !== undefined) {
+        const parsedMinAge = Number(minAge);
+
+        if (!Number.isFinite(parsedMinAge) || parsedMinAge < 0) {
+            return res.status(400).json({ error: 'minAge must be a non-negative number' });
+        }
+
+        conditions.push(`EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_date)) >= $${values.length + 1}`);
+        values.push(parsedMinAge);
+    }
     
+    const queryText = `
+        SELECT *
+        FROM users
+        ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+        ORDER BY id;
+    `;
+
+    try {
+        const result = await pool.query(queryText, values);
+        return res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send('Error getting users');
+    }
+
 })
 
+app.get('/users/stats', async (req: Request, res: Response) => {
+
+   try{
+        const usersQuery = `
+            SELECT *
+            FROM users
+            ORDER BY id;
+        `;
+
+        const statsQuery = `
+          SELECT
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE LOWER(gender) = 'female')::int AS female,
+            COUNT(*) FILTER (WHERE LOWER(gender) = 'male')::int AS male,
+            COUNT(*) FILTER (WHERE gender IS NULL OR gender = '')::int AS unknown
+          FROM users;
+        `;
+
+        const [usersResult, statsResult] = await Promise.all([
+            pool.query(usersQuery),
+            pool.query(statsQuery)
+        ]);
+
+        const stats = statsResult.rows[0];
+        const byGender = {
+            female:Number(stats.female || 0),
+            male: Number(stats.male || 0),
+            unknown: Number(stats.unknown || 0)
+        };
+
+        return res.json({
+            total: Number(stats.total || 0),
+            byGender,
+            users: usersResult.rows
+        });
+   } catch (error) {
+        console.error(error);
+        return res.status(500).send('Error getting users2');
+   }
+})
 
 
 app.listen(PORT, () => {
